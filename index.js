@@ -41,7 +41,10 @@ app.post('/calcular-distancia', async (req, res) => {
     );
 
     const distanciaKm = route.data.routes[0].summary.distance / 1000;
-    res.json({ distancia: distanciaKm });
+    res.json({
+  distancia: distanciaKm,
+  coordenadas: route.data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]) // [lat, lon]
+});
 
   } catch (error) {
     console.error(error);
