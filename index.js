@@ -9,27 +9,32 @@ app.use(express.json());
 
 const ORS_API_KEY = process.env.ORS_API_KEY;
 
+// Función para eliminar tildes de los textos
+const removeAccents = (text) =>
+  text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 app.post('/calcular-distancia', async (req, res) => {
   const { origen, destino } = req.body;
 
   try {
     const getCoords = async (lugar) => {
-  const lugarCompleto = `${lugar}, Pereira, Colombia`;
+      const limpio = removeAccents(lugar);
+      const lugarCompleto = `${limpio}, Pereira, Colombia`;
 
-  const res = await axios.get('https://api.openrouteservice.org/geocode/search', {
-    params: {
-      api_key: ORS_API_KEY,
-      text: lugarCompleto,
-      'boundary.country': 'CO',
-    },
-  });
+      const res = await axios.get('https://api.openrouteservice.org/geocode/search', {
+        params: {
+          api_key: ORS_API_KEY,
+          text: lugarCompleto,
+          'boundary.country': 'CO',
+        },
+      });
 
-  if (!res.data.features.length) {
-    throw new Error(`No se encontraron coordenadas para: ${lugarCompleto}`);
-  }
+      if (!res.data.features.length) {
+        throw new Error(`No se encontraron coordenadas para: ${lugarCompleto}`);
+      }
 
-  return res.data.features[0].geometry.coordinates;
-};
+      return res.data.features[0].geometry.coordinates;
+    };
 
     const [lon1, lat1] = await getCoords(origen);
     const [lon2, lat2] = await getCoords(destino);
@@ -57,7 +62,9 @@ app.post('/calcular-distancia', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error al calcular distancia:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Error calculando distancia' });
+    res.status(500).json({
+      error: error.message || 'Error calculando distancia'
+    });
   }
 });
 
