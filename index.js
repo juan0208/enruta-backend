@@ -14,20 +14,22 @@ app.post('/calcular-distancia', async (req, res) => {
 
   try {
     const getCoords = async (lugar) => {
-      const res = await axios.get('https://api.openrouteservice.org/geocode/search', {
-        params: {
-          api_key: ORS_API_KEY,
-          text: lugar,
-          'boundary.country': 'CO',
-        },
-      });
+  const lugarCompleto = `${lugar}, Pereira, Colombia`;
 
-      if (!res.data.features.length) {
-        throw new Error(`No se encontraron coordenadas para: ${lugar}`);
-      }
+  const res = await axios.get('https://api.openrouteservice.org/geocode/search', {
+    params: {
+      api_key: ORS_API_KEY,
+      text: lugarCompleto,
+      'boundary.country': 'CO',
+    },
+  });
 
-      return res.data.features[0].geometry.coordinates;
-    };
+  if (!res.data.features.length) {
+    throw new Error(`No se encontraron coordenadas para: ${lugarCompleto}`);
+  }
+
+  return res.data.features[0].geometry.coordinates;
+};
 
     const [lon1, lat1] = await getCoords(origen);
     const [lon2, lat2] = await getCoords(destino);
