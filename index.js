@@ -54,16 +54,15 @@ app.post('/calcular-distancia', async (req, res) => {
       }
     );
 
-    if (
-      !route.data.features ||
-      !route.data.features.length ||
-      !route.data.features[0].geometry.coordinates
-    ) {
-      throw new Error(`No se pudo calcular ruta entre "${origen}" y "${destino}". Intenta escribir con más detalle o verifica los nombres.`);
+    // Validación estricta de ruta válida
+    const routeFeature = route.data.features?.[0];
+    const summary = routeFeature?.properties?.summary;
+
+    if (!summary || typeof summary.distance !== 'number') {
+      throw new Error(`No se pudo calcular una ruta válida entre "${origen}" y "${destino}". Intenta escribir con más detalle o verificar los nombres.`);
     }
 
-    const routeFeature = route.data.features[0];
-    const distanciaKm = routeFeature.properties.summary.distance / 1000;
+    const distanciaKm = summary.distance / 1000;
     const coordenadas = routeFeature.geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
 
     res.json({
