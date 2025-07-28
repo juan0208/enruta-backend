@@ -9,7 +9,7 @@ app.use(express.json());
 
 const ORS_API_KEY = process.env.ORS_API_KEY;
 
-// Función para eliminar tildes de los textos
+// Función para eliminar tildes
 const removeAccents = (text) =>
   text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -17,11 +17,12 @@ app.post('/calcular-distancia', async (req, res) => {
   const { origen, destino } = req.body;
 
   try {
+    // Obtener coordenadas desde OpenRouteService
     const getCoords = async (lugar) => {
-      const limpio = lugar.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const limpio = removeAccents(lugar.trim());
       const lugarCompleto = `${limpio}, Pereira, Colombia`;
 
-      const res = await axios.get('https://api.openrouteservice.org/geocode/search', {
+      const response = await axios.get('https://api.openrouteservice.org/geocode/search', {
         params: {
           api_key: ORS_API_KEY,
           text: lugarCompleto,
@@ -29,16 +30,17 @@ app.post('/calcular-distancia', async (req, res) => {
         },
       });
 
-      if (!res.data.features.length) {
-        throw new Error(`No se encontraron coordenadas para: ${lugarCompleto}`);
+      if (!response.data.features.length) {
+        throw new Error(`No se encontraron coordenadas para: "${lugar}"`);
       }
 
-      return res.data.features[0].geometry.coordinates;
+      return response.data.features[0].geometry.coordinates;
     };
 
     const [lon1, lat1] = await getCoords(origen);
     const [lon2, lat2] = await getCoords(destino);
 
+    // Obtener ruta entre puntos
     const route = await axios.post(
       'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
       {
@@ -52,11 +54,15 @@ app.post('/calcular-distancia', async (req, res) => {
       }
     );
 
-    const routeFeature = route.data.features?.[0];
-    if (!routeFeature) {
-      throw new Error(`No se pudo calcular ruta entre "${origen}" y "${destino}"`);
+    if (
+      !route.data.features ||
+      !route.data.features.length ||
+      !route.data.features[0].geometry.coordinates
+    ) {
+      throw new Error(`No se pudo calcular ruta entre "${origen}" y "${destino}". Intenta escribir con más detalle o verifica los nombres.`);
     }
 
+    const routeFeature = route.data.features[0];
     const distanciaKm = routeFeature.properties.summary.distance / 1000;
     const coordenadas = routeFeature.geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
 
@@ -66,14 +72,13 @@ app.post('/calcular-distancia', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error al calcular distancia:', error.response?.data || error.message);
-    res.status(500).json({
-      error: error.message || 'Error calculando distancia'
-    });
+    const msg = error.response?.data?.error || error.message || 'Error calculando distancia';
+    console.error('❌ Error al calcular distancia:', msg);
+    res.status(500).json({ error: msg });
   }
 });
 
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log('🚀 Servidor escuchando en puerto 3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
 });
