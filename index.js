@@ -21,6 +21,11 @@ app.post('/calcular-distancia', async (req, res) => {
           'boundary.country': 'CO',
         },
       });
+
+      if (!res.data.features.length) {
+        throw new Error(`No se encontraron coordenadas para: ${lugar}`);
+      }
+
       return res.data.features[0].geometry.coordinates;
     };
 
@@ -28,7 +33,7 @@ app.post('/calcular-distancia', async (req, res) => {
     const [lon2, lat2] = await getCoords(destino);
 
     const route = await axios.post(
-      'https://api.openrouteservice.org/v2/directions/driving-car',
+      'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
       {
         coordinates: [[lon1, lat1], [lon2, lat2]]
       },
@@ -40,18 +45,20 @@ app.post('/calcular-distancia', async (req, res) => {
       }
     );
 
-    const distanciaKm = route.data.routes[0].summary.distance / 1000;
+    const distanciaKm = route.data.features[0].properties.summary.distance / 1000;
+    const coordenadas = route.data.features[0].geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
+
     res.json({
-  distancia: distanciaKm,
-  coordenadas: route.data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]) // [lat, lon]
-});
+      distancia: distanciaKm,
+      coordenadas
+    });
 
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error al calcular distancia:', error.response?.data || error.message);
     res.status(500).json({ error: 'Error calculando distancia' });
   }
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log('Servidor escuchando en puerto 3000');
+  console.log('🚀 Servidor escuchando en puerto 3000');
 });
