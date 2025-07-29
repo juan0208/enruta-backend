@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -76,51 +74,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
 });
-
-
-const barrios = [
-  "Cuba, Pereira",
-  "Parque Arboleda, Pereira",
-  "Villa Verde, Pereira",
-  "Los Álamos, Pereira",
-  "Boston, Pereira",
-  "San Joaquín, Pereira",
-  "El Jardín, Pereira"
-];
-
-function autocompletar(inputId) {
-  const input = document.getElementById(inputId);
-  input.addEventListener('input', () => {
-    const valor = input.value.toLowerCase();
-    const sugerencias = barrios.filter(b => b.toLowerCase().includes(valor));
-    const datalist = document.getElementById('barrios');
-    datalist.innerHTML = '';
-    sugerencias.forEach(op => {
-      const option = document.createElement('option');
-      option.value = op;
-      datalist.appendChild(option);
-    });
-  });
-}
-
-autocompletar('origen');
-autocompletar('destino');
-
-function detectarUbicacion() {
-  navigator.geolocation.getCurrentPosition(async position => {
-    const { latitude, longitude } = position.coords;
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-    const data = await res.json();
-    if (data && data.display_name) {
-      document.getElementById('origen').value = data.display_name;
-    }
-  }, err => {
-    alert('No se pudo obtener tu ubicación');
-  });
-}
-
-if (error.response && error.response.status === 400) {
-  errorDiv.innerHTML = `❌ ${data.error}`;
-} else {
-  errorDiv.innerHTML = `❌ ${error.message}`;
-}
